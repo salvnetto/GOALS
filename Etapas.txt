@@ -8,3 +8,20 @@
 		.?
 
 2 - Modelagem e Estimação
+	- Achar um lambda ideal para a Poisson. Podemos utilizar os seguites parâmetros:
+		- Time alvo:
+			- XG a favor geral (média)
+			- XG a favor no mando de campo em questão (média)
+			- Gols marcados geral (média)
+			- Gols marcados no mando de campo em questão (média)
+			- XG a favor com base na escalação que irá jogar a partida (média)
+		- Time adversário:
+			- Gols sofridos geral (média)
+			- Gols sofridos no mando de campo em questão (média)
+			- XG contra geral (média)
+			- XG contra no mando de campo em questão (média)
+		- Fator histórico:
+			- Fator histórico tanto no confronto quanto no desempenho no campeonato em geral
+
+3 - Subjetividade (inferência bayesiana)
+	- Como entrar com a subjetividade no modelo e como numerar/parametrizar fatores subjetivos
