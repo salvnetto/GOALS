@@ -14,6 +14,10 @@
 			- XG a favor no mando de campo em questão (média)
 			- Gols marcados geral (média)
 			- Gols marcados no mando de campo em questão (média)
+			- XG a favor nos últimos 5 jogos geral (média)
+			- XG a favor nos últimos 5 jogos no mando de campo em questão (média)
+			- Gols marcados nos últmos 5 jogos geral (média)
+			- Gols marcados nos útimos 5 jogos no mando de campo em questão (média)
 			- XG a favor com base na escalação que irá jogar a partida (média)
 		- Time adversário:
 			- Gols sofridos geral (média)
