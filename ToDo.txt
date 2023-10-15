@@ -1,6 +1,9 @@
-1- Automatizar Tabela de ODDs e Probs
-	- Colocar Probs na planilha
-	- Colocar Resultados dos jogos junto
-	- Verificar se houve acerto
-2- Scrap Futuras Rodadas do Brasileirao
-3- Testar Novos modelos
+- Automatizar Poisson_Simples
+	.Funcoes para lambdas
+	.Modo novo de planilhas incorporadas as Rodadas
+	.Comparar Acertos
+
+
+- Regressao Poisson
+- Poisson Bivariada
+- Poisson Bayesiana
