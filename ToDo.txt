@@ -1,5 +1,4 @@
 - Automatizar Poisson_Simples
-	.Modo novo de planilhas incorporadas as Rodadas
 	.Comparar Acertos
 
 
