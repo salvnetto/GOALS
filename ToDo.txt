@@ -1,7 +1,0 @@
-- Automatizar Poisson_Simples
-	.Comparar Acertos
-
-
-- Regressao Poisson
-- Poisson Bivariada
-- Poisson Bayesiana
