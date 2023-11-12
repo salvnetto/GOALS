@@ -115,3 +115,31 @@ CREATE TABLE futebol.rounds (
     FOREIGN KEY (away_id) REFERENCES futebol.teams(team_id),
 	FOREIGN KEY (league_id) REFERENCES futebol.leagues(id)
 );
+
+-- Elencos
+CREATE TABLE futebol.squads (
+    player VARCHAR(255),
+    pos VARCHAR(255),
+    mp INT,
+    starts INT,
+    "min" NUMERIC,
+    "90s" NUMERIC,
+    gls NUMERIC,
+    ast NUMERIC,
+    crdy NUMERIC,
+    crdr NUMERIC,
+    xg NUMERIC,
+    npxg NUMERIC,
+    xag NUMERIC,
+    prgc NUMERIC,
+    prgp NUMERIC,
+    prgr NUMERIC,
+    season INT,
+    team VARCHAR(255),
+    league VARCHAR(255),
+    coach VARCHAR(255),
+    team_id INT,
+    league_id INT,
+    FOREIGN KEY (team_id) REFERENCES futebol.teams(team_id),
+	FOREIGN KEY (league_id) REFERENCES futebol.leagues(id)
+);
