@@ -22,7 +22,7 @@ CREATE TABLE futebol.teams (
 
 -- Historico
 CREATE TABLE futebol.match_history (
-    game_id INT PRIMARY KEY,
+    game_id INT,
     "date" DATE,
     comp VARCHAR(255),
     round INT,
