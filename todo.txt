@@ -1,2 +1,21 @@
-1- Rede Neural
-2- Regressão Poisson Bivariada
+# Criar requirements
+pip freeze > requirements.txt
+
+
+# Criar Setup.py
+from setuptools import setup, find_packages
+
+setup(
+    name='meu_projeto',
+    version='0.1',
+    packages=find_packages(),
+    install_requires=[
+        'pacote1',
+        'pacote2',
+    ],
+    author='Seu Nome',
+    author_email='seu@email.com',
+    description='Uma breve descrição do seu projeto',
+    url='https://github.com/seu_usuario/seu_projeto',
+    keywords='exemplo, projeto, python',
+)
