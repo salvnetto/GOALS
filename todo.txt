@@ -19,3 +19,7 @@ setup(
     url='https://github.com/seu_usuario/seu_projeto',
     keywords='exemplo, projeto, python',
 )
+
+
+# Documentacao
+sphinx
