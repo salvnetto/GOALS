@@ -23,3 +23,12 @@ setup(
 
 # Documentacao
 sphinx
+
+
+
+
+
+#### Webscrap
+response == 200
+testar time sleep minimo
+documentar

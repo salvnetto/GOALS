@@ -9,4 +9,6 @@ for league in league_list:
     league = GetLeagueData(league, '2014-2015')
   
   #league.get_standings(has_downloaded=False)
-  league.get_standings(has_downloaded=True)
+  #league.get_standings(has_downloaded=True)
+  league.get_match_history(has_downloaded=False)
+  league.get_match_history(has_downloaded=True)
