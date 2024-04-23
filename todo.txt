@@ -29,8 +29,7 @@ sphinx
 
 
 #### Webscrap
-documentar + modularizar
+better -> documentar + modularizar
 response == 200
-otimizar match_history request
-testar time sleep minimos
+otimizar match_history request e testar time sleep minimos
 squads + transfermarkt

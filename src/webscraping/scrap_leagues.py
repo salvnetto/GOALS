@@ -28,25 +28,15 @@ class GetData:
   first_season : str
     The starting season for which data is to be fetched. 
     Format: 'YYYY' for single year or 'YYYY-YYYY' for a range, depending on the region.
-  name : str
-    Full name of the league.
-  url : str
-    URL to fetch data from.
-  data_path : str
-    Path to store the fetched data.
-  soup_initial : BeautifulSoup object
-    Parsed HTML data of the initial request.
-  data_initial : Response object
-    Response object of the initial request.
 
   Methods:
   --------
-  _set_league_properties():
-    Sets league-specific properties such as name, URL, and data path.
-  _initialize_data():
-    Fetches initial data from the URL and parses it.
   get_standings(has_downloaded=True):
     Fetches standings data for the league, optionally downloads it if not already downloaded.
+  get_match_history(has_downloaded=True):
+    Fetches match history per team in the league, optionally downloads it if not already downloaded.
+  get_squads(has_downloaded=True):
+    Fetches squads players data for the teams in the league, optionally downloads it if not already downloaded.
   """
 
   def __init__(self, league, first_season):
@@ -236,6 +226,13 @@ class GetData:
     process_standing(self.league_code)
 
   def get_match_history(self, has_downloaded=True):
+    """Fetch match history per team in the league.
+
+    Parameters:
+    -----------
+    has_downloaded : bool, optional
+        Flag indicating if data has already been downloaded. Defaults to True.
+    """
     if has_downloaded is False:
       print(f'{self.name} - {self.first_season} ({self.data_path})')
       teams_urls = self._get_url_teams(self.url)
@@ -272,6 +269,13 @@ class GetData:
     process_match_history(self.league_code)
 
   def get_squads(self, has_downloaded= True):
+    """Fetch squads players data for the league.
+
+    Parameters:
+    -----------
+    has_downloaded : bool, optional
+        Flag indicating if data has already been downloaded. Defaults to True.
+    """
     if has_downloaded is False:
       print(f'{self.name} - {self.first_season} ({self.data_path})')
       teams_urls = self._get_url_teams(self.url)

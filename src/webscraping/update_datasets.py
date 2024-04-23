@@ -12,3 +12,5 @@ for league in league_list:
   #league.get_standings(has_downloaded=True)
   league.get_match_history(has_downloaded=False)
   #league.get_match_history(has_downloaded=True)
+  league.get_squads(has_downloaded=False)
+  #league.get_squads(has_downloaded=True)
