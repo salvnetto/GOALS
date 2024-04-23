@@ -9,8 +9,9 @@ from datetime import datetime
 warnings.simplefilter(action='ignore', category=FutureWarning)
 
 from .constants import *
+from .process_data import process_match_history, process_standing, process_squads
 
-class GetLeagueData:
+class GetData:
   """Class to fetch and manage data from various football leagues.
 
   Attributes:
@@ -64,9 +65,10 @@ class GetLeagueData:
         'fr': ('Ligue 1', '13')
     }
     if self.league in leagues:
-        self.name, league_id = leagues[self.league]
-        self.url = f"{URL_FBREF}/en/comps/{league_id}/{self.first_season}/{self.first_season}-{self.name.replace(' ', '-')}-Stats"
-        self.data_path = f"datasets/raw_data/{self.name.lower().replace(' ', '_')}/"
+        self.name, self.league_id = leagues[self.league]
+        self.url = f"{URL_FBREF}/en/comps/{self.league_id}/{self.first_season}/{self.first_season}-{self.name.replace(' ', '-')}-Stats"
+        self.league_code = self.name.lower().replace(' ', '_')
+        self.data_path = f"datasets/raw_data/{self.league_code}/"
         now = datetime.now()
         if self.league == 'br':
           SEASONS_LIST.append(str(now.year))
@@ -82,19 +84,25 @@ class GetLeagueData:
       self.data_initial = requests.get(self.url)
       self.soup_initial = BeautifulSoup(self.data_initial.text, features="lxml")
 
-  def _get_url_teams(self, url, season):
-    match_history = []
+  def _get_url_teams(self, url):
     data = requests.get(url)
     soup = BeautifulSoup(data.text, features= 'lxml')
     table = soup.select('table.stats_table')[0]           
     links = table.find_all('a')                           
     links = [link.get('href') for link in links]          
     links = [link for link in links if '/squads/' in link]  
-    urls = [f"https://fbref.com{link}" for link in links] 
+    urls = [f"https://fbref.com{link}" for link in links]
+
+    return urls
+  
+  def _get_team_match_history(self, season, urls):
+    match_history = []
     for team in urls:
       team_name = team.split('/')[-1].replace('-Stats', '').replace('-','_').lower()
       team_mh = pd.read_html(team)[1]
       team_mh['season'] = season
+      team_mh['league_id'] = self.league_id
+      team_mh['league_name'] = self.name
       team_mh['team'] = team_name
       print(f'--{team_name}')
 
@@ -178,7 +186,7 @@ class GetLeagueData:
     match_history = pd.concat(match_history)
 
     return match_history
-  
+
   def get_standings(self, has_downloaded=True):
     """Fetch standings data for the league.
 
@@ -188,9 +196,10 @@ class GetLeagueData:
         Flag indicating if data has already been downloaded. Defaults to True.
     """
     if has_downloaded is False:
-      self.soup = self.soup_initial
+      standing = pd.read_html(self.data_initial.text, match= 'Regular season')[0]
       standing['season'] = self.first_season
       standing['league_name'] = self.name
+      standing['league_id'] = self.league_id
       if not os.path.exists(self.data_path):
         os.makedirs(self.data_path)
       print(f'{self.name} - {self.first_season} ({self.data_path})')
@@ -217,17 +226,20 @@ class GetLeagueData:
             standing = pd.read_html(self.data.text, match= 'Regular season')[0]
             standing['season'] = season
             standing['league_name'] = self.name
+            standing['league_id'] = self.league_id
             standing_downloaded = pd.concat([standing_downloaded, standing])
             standing_downloaded.to_feather(self.data_path + 'standing.fea')
           except Exception as e:
             warnings.warn(f"Error while downloading data for season {season}: {e}")
             continue
         time.sleep(2)
+    process_standing(self.league_code)
 
   def get_match_history(self, has_downloaded=True):
     if has_downloaded is False:
       print(f'{self.name} - {self.first_season} ({self.data_path})')
-      match_history = self._get_url_teams(self.url, self.first_season)
+      teams_urls = self._get_url_teams(self.url)
+      match_history = self._get_team_match_history(self.url, self.first_season, teams_urls)
       if not os.path.exists(self.data_path):
         os.makedirs(self.data_path)
       match_history.to_feather(self.data_path + 'match_history.fea')
@@ -249,10 +261,50 @@ class GetLeagueData:
           url = url.replace(init_season, season)
           print(f'{self.name} - {season} ({self.data_path})')
           try:
-            match_history = self._get_url_teams(url, season)
+            teams_urls = self._get_url_teams(self.url)
+            match_history = self._get_team_match_history(self.url, self.first_season, teams_urls)
             match_history_downloaded = pd.concat([match_history_downloaded, match_history])
             match_history_downloaded.to_feather(self.data_path + 'match_history.fea')
           except Exception as e:
             warnings.warn(f"Error while downloading data for season {season}: {e}")
             continue
         time.sleep(2)
+    process_match_history(self.league_code)
+
+  def get_squads(self, has_downloaded= True):
+    if has_downloaded is False:
+      print(f'{self.name} - {self.first_season} ({self.data_path})')
+      teams_urls = self._get_url_teams(self.url)
+      squads = provisorio
+      #match_history = self._get_team_match_history(self.url, self.first_season, teams_urls)
+      if not os.path.exists(self.data_path):
+        os.makedirs(self.data_path)
+      squads.to_feather(self.data_path + 'squads.fea')
+
+    if has_downloaded is True:
+      squads_downloaded = pd.read_feather(self.data_path + 'squads.fea')
+      downloaded_seasons = squads_downloaded['season'].unique()
+      downloaded_seasons = [season.split('-')[0] for season in downloaded_seasons]
+      
+      for season in SEASONS_LIST:
+        if season not in downloaded_seasons:
+          if self.league in ('br'):
+            season = season
+          else:
+            next_year = int(season) + 1
+            season = f"{season}-{next_year}"
+          url = self.url
+          init_season = url.split('/')[6]
+          url = url.replace(init_season, season)
+          print(f'{self.name} - {season} ({self.data_path})')
+          try:
+            teams_urls = self._get_url_teams(self.url)
+            squads = provisorio
+            #match_history = self._get_team_match_history(self.url, self.first_season, teams_urls)
+            squads_downloaded = pd.concat([squads_downloaded, squads])
+            squads_downloaded.to_feather(self.data_path + 'squads.fea')
+          except Exception as e:
+            warnings.warn(f"Error while downloading data for season {season}: {e}")
+            continue
+        time.sleep(2)
+    process_squads(self.league_code)
