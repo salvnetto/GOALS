@@ -29,7 +29,9 @@ sphinx
 
 
 #### Webscrap
-better -> documentar + modularizar
 response == 200
+documentar
 otimizar match_history request e testar time sleep minimos
-squads + transfermarkt
+transfermarkt
+sempre dar update no ano atual
+arrumar seasons

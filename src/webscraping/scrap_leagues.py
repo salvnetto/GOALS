@@ -192,53 +192,43 @@ class GetData:
 
     return squads
 
+  def _convert_season_type(self, season, downloaded_seasons):
+    if season not in downloaded_seasons:
+      if self.league not in ('br'):
+        season = f"{season}-{int(season) + 1}"
+      else:
+        season = season
+      return season
 
-  def get_standings(self, has_downloaded=True):
-    """Fetch standings data for the league.
-
-    Parameters:
-    -----------
-    has_downloaded : bool, optional
-        Flag indicating if data has already been downloaded. Defaults to True.
-    """
-    if has_downloaded is False:
-      standing = pd.read_html(self.data_initial.text, match= 'Regular season')[0]
-      standing['season'] = self.first_season
-      standing['league_name'] = self.name
-      standing['league_id'] = self.league_id
-      if not os.path.exists(self.data_path):
-        os.makedirs(self.data_path)
-      print(f'{self.name} - {self.first_season} ({self.data_path})')
+  def get_standings(self):
+    if not os.path.exists(self.data_path):
+      os.makedirs(self.data_path)
+      standing = pd.DataFrame({'season': []})
       standing.to_feather(self.data_path + 'standing.fea')
 
-    if has_downloaded is True:
-      standing_downloaded = pd.read_feather(self.data_path + 'standing.fea')
-      downloaded_seasons = standing_downloaded['season'].unique()
-      downloaded_seasons = [season.split('-')[0] for season in downloaded_seasons]
-      
-      for season in SEASONS_LIST:
-        if season not in downloaded_seasons:
-          if self.league in ('br'):
-            season = season
-          else:
-            next_year = int(season) + 1
-            season = f"{season}-{next_year}"
-          url = self.url
-          init_season = url.split('/')[6]
-          url = url.replace(init_season, season)
-          print(f'{self.name} - {season} ({self.data_path})')
-          try:
-            self.data = requests.get(url)
-            standing = pd.read_html(self.data.text, match= 'Regular season')[0]
-            standing['season'] = season
-            standing['league_name'] = self.name
-            standing['league_id'] = self.league_id
-            standing_downloaded = pd.concat([standing_downloaded, standing])
-            standing_downloaded.to_feather(self.data_path + 'standing.fea')
-          except Exception as e:
-            warnings.warn(f"Error while downloading data for season {season}: {e}")
-            continue
-        time.sleep(2)
+    standing_downloaded = pd.read_feather(self.data_path + 'standing.fea')
+    downloaded_seasons = standing_downloaded['season'].unique()
+    downloaded_seasons = [season.split('-')[0] for season in downloaded_seasons]
+    print(downloaded_seasons)
+
+    for season in SEASONS_LIST:
+      season = self._convert_season_type(season, downloaded_seasons)
+      url = self.url
+      init_season = url.split('/')[6]
+      url = url.replace(init_season, season)
+      print(f'{self.name} - {season} ({self.data_path})')
+      try:
+        self.data = requests.get(url)
+        standing = pd.read_html(self.data.text, match= 'Regular season')[0] #self.data_initial.text
+        standing['season'] = season #self.first_season
+        standing['league_name'] = self.name
+        standing['league_id'] = self.league_id
+        standing_downloaded = pd.concat([standing_downloaded, standing])
+        standing_downloaded.to_feather(self.data_path + 'standing.fea')
+      except Exception as e:
+        warnings.warn(f"Error while downloading data for season {season}: {e}")
+        continue
+      time.sleep(2)
     process_standing(self.league_code)
 
   def get_match_history(self, has_downloaded=True):
