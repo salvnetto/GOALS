@@ -8,8 +8,8 @@ from datetime import datetime
 
 warnings.simplefilter(action='ignore', category=FutureWarning)
 
-from .constants import *
-from .process_data import process_match_history, process_standing, process_squads
+from constants import *
+from process_data import process_match_history, process_standing#, process_squads
 
 class GetData:
   """Class to fetch and manage data from various football leagues.
@@ -172,10 +172,26 @@ class GetData:
         pass
 
       match_history.append(team_mh)
-      time.sleep(1)
+      time.sleep(10)
     match_history = pd.concat(match_history)
 
     return match_history
+
+  def _get_squads_stats(self, urls, season):
+    squads = []
+    for team in urls:
+      team_squad = pd.read_html(team)[0]
+      team_squad.columns = team_squad.columns.droplevel()
+      team_squad['season'] = season
+      team_squad['league_id'] = self.league_id
+      team_squad['league_name'] = self.name
+      team_name = team.split('/')[-1].replace('-Stats', '').replace('-','_').lower()
+      team_squad['team'] = team_name
+      squads.append(team_squad)
+    squads = pd.concat(squads)
+
+    return squads
+
 
   def get_standings(self, has_downloaded=True):
     """Fetch standings data for the league.
@@ -236,10 +252,11 @@ class GetData:
     if has_downloaded is False:
       print(f'{self.name} - {self.first_season} ({self.data_path})')
       teams_urls = self._get_url_teams(self.url)
-      match_history = self._get_team_match_history(self.url, self.first_season, teams_urls)
+      match_history = self._get_team_match_history(self.first_season, teams_urls)
       if not os.path.exists(self.data_path):
         os.makedirs(self.data_path)
-      match_history.to_feather(self.data_path + 'match_history.fea')
+      match_history = pd.DataFrame(match_history)
+      match_history.to_excel(self.data_path + 'match_history.xlsx')
 
     if has_downloaded is True:
       mh_downloaded = pd.read_feather(self.data_path + 'match_history.fea')
@@ -279,8 +296,7 @@ class GetData:
     if has_downloaded is False:
       print(f'{self.name} - {self.first_season} ({self.data_path})')
       teams_urls = self._get_url_teams(self.url)
-      squads = provisorio
-      #match_history = self._get_team_match_history(self.url, self.first_season, teams_urls)
+      squads = self._get_squads_stats(teams_urls, self.first_season)
       if not os.path.exists(self.data_path):
         os.makedirs(self.data_path)
       squads.to_feather(self.data_path + 'squads.fea')
@@ -303,8 +319,7 @@ class GetData:
           print(f'{self.name} - {season} ({self.data_path})')
           try:
             teams_urls = self._get_url_teams(self.url)
-            squads = provisorio
-            #match_history = self._get_team_match_history(self.url, self.first_season, teams_urls)
+            squads = self._get_squads_stats(teams_urls, season)
             squads_downloaded = pd.concat([squads_downloaded, squads])
             squads_downloaded.to_feather(self.data_path + 'squads.fea')
           except Exception as e:
