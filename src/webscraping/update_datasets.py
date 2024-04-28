@@ -4,9 +4,9 @@ league_list = ['br', 'en', 'it', 'es', 'de', 'fr']
 
 for league in league_list:
   if league == 'br':
-    league = GetData(league, '2014')
+    league = GetData(league)
   else:
-    league = GetData(league, '2014-2015')
+    league = GetData(league)
   
   league.get_standings()
   #league.get_match_history(has_downloaded=False)

@@ -12,38 +12,11 @@ from constants import *
 from process_data import process_match_history, process_standing#, process_squads
 
 class GetData:
-  """Class to fetch and manage data from various football leagues.
-
-  Attributes:
-  -----------
-  league : str
-    The abbreviation code of the league (e.g., 'br' for Brasileirao).
-    Supported leagues and their codes:
-      'br' - Brasileirao (Brazilian League)
-      'en' - Premier League (English League)
-      'it' - Serie A (Italian League)
-      'es' - La Liga (Spanish League)
-      'de' - Bundesliga (German League)
-      'fr' - Ligue 1 (French League)
-  first_season : str
-    The starting season for which data is to be fetched. 
-    Format: 'YYYY' for single year or 'YYYY-YYYY' for a range, depending on the region.
-
-  Methods:
-  --------
-  get_standings(has_downloaded=True):
-    Fetches standings data for the league, optionally downloads it if not already downloaded.
-  get_match_history(has_downloaded=True):
-    Fetches match history per team in the league, optionally downloads it if not already downloaded.
-  get_squads(has_downloaded=True):
-    Fetches squads players data for the teams in the league, optionally downloads it if not already downloaded.
-  """
-
-  def __init__(self, league, first_season):
+  def __init__(self, league):
     self.league = league
-    self.first_season = first_season
+    self.first_season = self._convert_season_type('2014')
     self._set_league_properties()
-    self._initialize_data()
+    self._set_actual_season()
 
   def _set_league_properties(self):
     leagues = {
@@ -59,22 +32,61 @@ class GetData:
         self.url = f"{URL_FBREF}/en/comps/{self.league_id}/{self.first_season}/{self.first_season}-{self.name.replace(' ', '-')}-Stats"
         self.league_code = self.name.lower().replace(' ', '_')
         self.data_path = f"datasets/raw_data/{self.league_code}/"
-        now = datetime.now()
-        if self.league == 'br':
-          SEASONS_LIST.append(str(now.year))
-        else:
-          if now.month < 7:
-            current_year = str(now.year)
-            if current_year in SEASONS_LIST:
-              SEASONS_LIST.remove(current_year)
     else:
         raise ValueError(f"League '{self.league}' not supported.")
 
-  def _initialize_data(self):
-      self.data_initial = requests.get(self.url)
-      self.soup_initial = BeautifulSoup(self.data_initial.text, features="lxml")
+  def _set_actual_season(self):
+    current_year = now.year
+    if self.league in ('br'):
+      self.actual_season = str(current_year - 1) if now.month <= 3 else str(current_year)
+    else:
+      if now.month < 7:
+        previous_year = str(current_year - 1)
+        if previous_year in SEASONS_LIST:
+          SEASONS_LIST.remove(previous_year)
+        self.actual_season = previous_year
+      else:
+        self.actual_season = str(current_year)
 
-  def _get_url_teams(self, url):
+  def _convert_season_type(self, season):
+    if self.league not in ('br'):
+      season = f"{season}-{int(season) + 1}"
+    return season
+
+  def _ensure_data_path(self, file_name):
+    if not os.path.exists(self.data_path):  
+      os.makedirs(self.data_path)
+    if not os.path.exists(self.data_path + f'{file_name}.csv'):
+      file = pd.DataFrame({'season': []})
+      file.to_csv(self.data_path + f'{file_name}.csv')
+
+  def get_standings(self):
+    file_name = 'standings'
+    self._ensure_data_path(file_name)
+    standing_downloaded = pd.read_csv(self.data_path + f'{file_name}.csv')
+
+    downloaded_seasons = [str(season).split('-')[0] for season in standing_downloaded['season'].unique()]
+    missing_seasons = [season for season in SEASONS_LIST if season not in downloaded_seasons]
+    missing_seasons.append(self.actual_season)
+
+    for season in missing_seasons:
+      season = self._convert_season_type(season)
+      url = self.url.replace(self.url.split('/')[6], season)
+      print(f'{self.name} - {season} ({self.data_path})')
+      try:
+        self.data = requests.get(url)
+        standing = pd.read_html(self.data.text, match='Regular season')[0]
+        standing['season'] = season
+        standing['league_name'] = self.name
+        standing['league_id'] = self.league_id
+        standing_downloaded = pd.concat([standing_downloaded, standing])
+        standing_downloaded.to_csv(self.data_path + f'{file_name}.csv')
+      except Exception as e:
+        warnings.warn(f"Error while downloading data for season {season}: {e}")
+      time.sleep(2)
+    process_standing(self.league_code)
+
+  def _get_teams_urls(self, url):
     data = requests.get(url)
     soup = BeautifulSoup(data.text, features= 'lxml')
     table = soup.select('table.stats_table')[0]           
@@ -177,103 +189,29 @@ class GetData:
 
     return match_history
 
-  def _get_squads_stats(self, urls, season):
-    squads = []
-    for team in urls:
-      team_squad = pd.read_html(team)[0]
-      team_squad.columns = team_squad.columns.droplevel()
-      team_squad['season'] = season
-      team_squad['league_id'] = self.league_id
-      team_squad['league_name'] = self.name
-      team_name = team.split('/')[-1].replace('-Stats', '').replace('-','_').lower()
-      team_squad['team'] = team_name
-      squads.append(team_squad)
-    squads = pd.concat(squads)
+  def get_match_history(self):
+    file_name = 'match_history'
+    self._ensure_data_path(file_name)
+    match_history_downloaded = pd.read_csv(self.data_path + f'{file_name}.csv')
 
-    return squads
+    downloaded_seasons = [str(season).split('-')[0] for season in match_history_downloaded['season'].unique()]
+    missing_seasons = [season for season in SEASONS_LIST if season not in downloaded_seasons]
+    missing_seasons.append(self.actual_season)
 
-  def _convert_season_type(self, season, downloaded_seasons):
-    if season not in downloaded_seasons:
-      if self.league not in ('br'):
-        season = f"{season}-{int(season) + 1}"
-      else:
-        season = season
-      return season
-
-  def get_standings(self):
-    if not os.path.exists(self.data_path):
-      os.makedirs(self.data_path)
-      standing = pd.DataFrame({'season': []})
-      standing.to_feather(self.data_path + 'standing.fea')
-
-    standing_downloaded = pd.read_feather(self.data_path + 'standing.fea')
-    downloaded_seasons = standing_downloaded['season'].unique()
-    downloaded_seasons = [season.split('-')[0] for season in downloaded_seasons]
-    print(downloaded_seasons)
-
-    for season in SEASONS_LIST:
-      season = self._convert_season_type(season, downloaded_seasons)
-      url = self.url
-      init_season = url.split('/')[6]
-      url = url.replace(init_season, season)
+    for season in missing_seasons:
+      season = self._convert_season_type(season)
+      url = self.url.replace(self.url.split('/')[6], season)
       print(f'{self.name} - {season} ({self.data_path})')
       try:
-        self.data = requests.get(url)
-        standing = pd.read_html(self.data.text, match= 'Regular season')[0] #self.data_initial.text
-        standing['season'] = season #self.first_season
-        standing['league_name'] = self.name
-        standing['league_id'] = self.league_id
-        standing_downloaded = pd.concat([standing_downloaded, standing])
-        standing_downloaded.to_feather(self.data_path + 'standing.fea')
+        teams_urls = self._get_teams_urls(url)
+        match_history = self._get_team_match_history(self.url, self.first_season, teams_urls)
+        match_history_downloaded = pd.concat([match_history_downloaded, match_history])
+        match_history_downloaded.to_csv(self.data_path + f'{file_name}.csv')
       except Exception as e:
         warnings.warn(f"Error while downloading data for season {season}: {e}")
-        continue
       time.sleep(2)
-    process_standing(self.league_code)
-
-  def get_match_history(self, has_downloaded=True):
-    """Fetch match history per team in the league.
-
-    Parameters:
-    -----------
-    has_downloaded : bool, optional
-        Flag indicating if data has already been downloaded. Defaults to True.
-    """
-    if has_downloaded is False:
-      print(f'{self.name} - {self.first_season} ({self.data_path})')
-      teams_urls = self._get_url_teams(self.url)
-      match_history = self._get_team_match_history(self.first_season, teams_urls)
-      if not os.path.exists(self.data_path):
-        os.makedirs(self.data_path)
-      match_history = pd.DataFrame(match_history)
-      match_history.to_excel(self.data_path + 'match_history.xlsx')
-
-    if has_downloaded is True:
-      mh_downloaded = pd.read_feather(self.data_path + 'match_history.fea')
-      downloaded_seasons = mh_downloaded['season'].unique()
-      downloaded_seasons = [season.split('-')[0] for season in downloaded_seasons]
-      
-      for season in SEASONS_LIST:
-        if season not in downloaded_seasons:
-          if self.league in ('br'):
-            season = season
-          else:
-            next_year = int(season) + 1
-            season = f"{season}-{next_year}"
-          url = self.url
-          init_season = url.split('/')[6]
-          url = url.replace(init_season, season)
-          print(f'{self.name} - {season} ({self.data_path})')
-          try:
-            teams_urls = self._get_url_teams(self.url)
-            match_history = self._get_team_match_history(self.url, self.first_season, teams_urls)
-            match_history_downloaded = pd.concat([match_history_downloaded, match_history])
-            match_history_downloaded.to_feather(self.data_path + 'match_history.fea')
-          except Exception as e:
-            warnings.warn(f"Error while downloading data for season {season}: {e}")
-            continue
-        time.sleep(2)
     process_match_history(self.league_code)
+    
 
   def get_squads(self, has_downloaded= True):
     """Fetch squads players data for the league.
@@ -317,3 +255,19 @@ class GetData:
             continue
         time.sleep(2)
     process_squads(self.league_code)
+
+
+  def _get_squads_stats(self, urls, season):
+    squads = []
+    for team in urls:
+      team_squad = pd.read_html(team)[0]
+      team_squad.columns = team_squad.columns.droplevel()
+      team_squad['season'] = season
+      team_squad['league_id'] = self.league_id
+      team_squad['league_name'] = self.name
+      team_name = team.split('/')[-1].replace('-Stats', '').replace('-','_').lower()
+      team_squad['team'] = team_name
+      squads.append(team_squad)
+    squads = pd.concat(squads)
+
+    return squads
