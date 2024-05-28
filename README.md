@@ -14,13 +14,13 @@ The `GOALS` package facilitates game outcome analysis using statistical learning
 To use the `GOALS` package, install it via pip:
 
 ```
-pip install GOALS
+pip install GOALS-Football
 ```
 
 ### Example: Loading Data
 
 ```python
-from GOALS import loadData
+from GOALS-Football import loadData
 
 # Load processed match history data for Brasileirão
 df = loadData('br', 'match_history')

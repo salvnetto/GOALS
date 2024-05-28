@@ -24,7 +24,7 @@ PROJECT_URLS = {
 }
 
 setup(
-    name='GOALS',
+    name='GOALS-Football',
     version='1.0.0',
     description= "The GOALS package facilitates game outcome analysis using statistical learning techniques. It is designed for modeling and predicting football match results based on various statistical features.",
     packages= find_packages(),
