@@ -20,7 +20,7 @@ pip install GOALS-Football
 ### Example: Loading Data
 
 ```python
-from GOALS-Football import loadData
+from goalsdata import loadData
 
 # Load processed match history data for Brasileirão
 df = loadData('br', 'match_history')
